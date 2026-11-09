@@ -1,7 +1,7 @@
 import { Activity, ArrowUpRight, Earth, FlaskConical } from "lucide-react";
 import Link from "next/link";
 
-export function Header({ lab = false }) {
+export function Header({ lab = false }: { lab?: boolean }) {
   return (
     <header className="site-header">
       <div className="wrap header-inner">

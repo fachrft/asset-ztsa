@@ -1,13 +1,14 @@
+import type { NextRequest } from "next/server";
 import { isFeedPeriod, readEarthquakes } from "../../../lib/usgs";
 
 const headers = { "Cache-Control": "no-store" };
 
-function csvCell(value) {
+function csvCell(value: string | number) {
   const text = typeof value === "string" && /^\s*[=+\-@\t\r\n]/.test(value) ? `'${value}` : String(value);
   return `"${text.replaceAll('"', '""')}"`;
 }
 
-export async function GET(request) {
+export async function GET(request: NextRequest) {
   const query = request.nextUrl.searchParams;
   const period = query.get("period") ?? "day";
   const format = query.get("format") ?? "json";
@@ -32,7 +33,7 @@ export async function GET(request) {
       } },
     );
   } catch (error) {
-    console.error("USGS feed request failed:", error.message);
+    console.error("USGS feed request failed:", error instanceof Error ? error.message : error);
     return Response.json(
       { error: "The USGS feed is temporarily unavailable. Try again shortly." },
       { status: 502, headers },

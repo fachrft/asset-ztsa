@@ -3,37 +3,41 @@
 import { geoEquirectangular, geoGraticule10, geoPath } from "d3-geo";
 import { feature } from "topojson-client";
 import world from "world-atlas/land-110m.json";
+import type { Earthquake } from "../lib/earthquakes";
 
 const projection = geoEquirectangular()
   .scale(142)
   .translate([480, 230]);
 const path = geoPath(projection);
-const land = path(feature(world, world.objects.land));
-const grid = path(geoGraticule10());
+const topology = world as unknown as Parameters<typeof feature>[0];
+const land = path(feature(topology, topology.objects.land)) ?? undefined;
+const grid = path(geoGraticule10()) ?? undefined;
 
-export function magnitudeBand(magnitude) {
+export function magnitudeBand(magnitude: number) {
   if (magnitude >= 6) return "high";
   if (magnitude >= 4.5) return "medium";
   return "low";
 }
 
-export default function EarthquakeMap({ events, selected, onSelect }) {
+type MapProps = {
+  events: Earthquake[];
+  selected?: string;
+  onSelect: (id: string) => void;
+};
+
+export default function EarthquakeMap({ events, selected, onSelect }: MapProps) {
   return (
     <svg viewBox="0 0 960 460" className="world-map" role="group" aria-label="Earthquake epicenter map">
-      <defs>
-        <radialGradient id="ocean">
-          <stop stopColor="#142735" />
-          <stop offset="1" stopColor="#0b131f" />
-        </radialGradient>
-      </defs>
-      <rect width="960" height="460" fill="url(#ocean)" />
+      <rect width="960" height="460" className="map-ocean" />
       <path d={grid} className="map-grid" />
       <path d={land} className="map-land" />
       <path d="M0 230H960M480 0V460" className="map-axis" />
       <text x="15" y="224" className="map-coord">0°</text>
       <text x="486" y="18" className="map-coord">0° E</text>
       {[...events].reverse().map((event) => {
-        const [x, y] = projection([event.longitude, event.latitude]);
+        const position = projection([event.longitude, event.latitude]);
+        if (!position) return null;
+        const [x, y] = position;
         const active = selected === event.id;
         const radius = 3 + Math.max(0, event.magnitude - 2.5) * 1.7;
         return (

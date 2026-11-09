@@ -1,9 +1,21 @@
 "use client";
 
 import { Activity, ArrowDownToLine, CircleCheck, CircleX, Clock, Database, Play, Send } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useState } from "react";
 
-const checks = [
+type Check = {
+  title: string;
+  method: "GET" | "POST";
+  path: string;
+  icon: LucideIcon;
+  description: string;
+  valid: (body: Record<string, unknown>, nonce: string) => boolean;
+};
+
+type CheckResult = { ok: boolean; message: string };
+
+const checks: Check[] = [
   { title: "App health", method: "GET", path: "/api/health", icon: Activity,
     description: "Confirms the browser can reach the app server.", valid: (body) => body.service === "seismic-desk" && body.status === "ok" },
   { title: "USGS feed", method: "GET", path: "/api/earthquakes", icon: Database,
@@ -12,10 +24,10 @@ const checks = [
     description: "Sends a generated nonce and checks the returned value.", valid: (body, nonce) => body.status === "ok" && body.nonce === nonce },
 ];
 
-async function runCheck(check) {
+async function runCheck(check: Check): Promise<CheckResult> {
   const start = performance.now();
   const nonce = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  let status;
+  let status: string | undefined;
   try {
     const response = await fetch(check.path, {
       method: check.method,
@@ -31,7 +43,9 @@ async function runCheck(check) {
     if (!response.headers.get("content-type")?.includes("application/json")) {
       return { ok: false, message: `${status} · Expected JSON` };
     }
-    const ok = check.valid(await response.json(), nonce);
+    const body: unknown = await response.json();
+    const ok = typeof body === "object" && body !== null &&
+      check.valid(body as Record<string, unknown>, nonce);
     return { ok, message: ok ? `${status} · ${Math.round(performance.now() - start)} ms` : `${status} · Unexpected response` };
   } catch {
     return { ok: false, message: status ? `${status} · Unreadable response` : "Request failed or timed out" };
@@ -39,7 +53,7 @@ async function runCheck(check) {
 }
 
 export default function AccessChecks() {
-  const [results, setResults] = useState(null);
+  const [results, setResults] = useState<CheckResult[] | null>(null);
   const [running, setRunning] = useState(false);
 
   async function run() {
@@ -60,10 +74,11 @@ export default function AccessChecks() {
       <div className="check-list" aria-live="polite">
         {checks.map((check, index) => {
           const result = results?.[index];
+          const Icon = check.icon;
           const Status = result ? result.ok ? CircleCheck : CircleX : Clock;
           return (
             <div className="check-row" key={check.title}>
-              <span className="panel-icon"><check.icon size={19} /></span>
+              <span className="panel-icon"><Icon size={19} /></span>
               <div className="check-detail">
                 <h3>{check.title}</h3>
                 <code>{check.method} {check.path}</code>

@@ -6,9 +6,10 @@ USER node
 
 ENV NEXT_TELEMETRY_DISABLED=1
 
-COPY --chown=node:node package*.json ./
-RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
+COPY --chown=node:node package.json package-lock.json ./
+RUN npm ci
 
+COPY --chown=node:node tsconfig.json ./
 COPY --chown=node:node app ./app
 COPY --chown=node:node components ./components
 COPY --chown=node:node lib ./lib

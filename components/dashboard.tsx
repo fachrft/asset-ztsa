@@ -4,7 +4,9 @@ import {
   Activity, ArrowDownToLine, ArrowUpRight, ChevronLeft, ChevronRight, Clock,
   Crosshair, Earth, Layers, Radio, RefreshCw, Search, TriangleAlert,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useEffect, useState } from "react";
+import type { Earthquake, EarthquakeFeed, FeedPeriod } from "../lib/earthquakes";
 import EarthquakeMap, { magnitudeBand } from "./earthquake-map";
 
 const dateTime = new Intl.DateTimeFormat("en-GB", {
@@ -16,23 +18,37 @@ const clock = new Intl.DateTimeFormat("en-GB", {
 const number = new Intl.NumberFormat("en");
 const pageSize = 8;
 
-function Metric({ icon: Icon, label, value, unit, note, tone }) {
+type MetricProps = {
+  icon: LucideIcon;
+  label: string;
+  value: string;
+  unit?: string;
+  note: string;
+  tone: "mint" | "amber" | "blue";
+};
+
+type FeedResult = {
+  period: FeedPeriod;
+  refresh: number;
+} & ({ data: EarthquakeFeed; error?: never } | { error: true; data?: never });
+
+function Metric({ icon: Icon, label, value, unit, note, tone }: MetricProps) {
   return (
     <article className={`metric ${tone}`}>
       <div className="metric-label"><span className="metric-icon"><Icon size={17} /></span>{label}</div>
-      <div className="metric-value">{value}<small>{unit}</small></div>
+      <div className="metric-value">{value}{unit && <small>{unit}</small>}</div>
       <div className="muted metric-note">{note}</div>
     </article>
   );
 }
 
 export default function Dashboard() {
-  const [period, setPeriod] = useState("day");
+  const [period, setPeriod] = useState<FeedPeriod>("day");
   const [threshold, setThreshold] = useState("2.5");
   const [query, setQuery] = useState("");
   const [refresh, setRefresh] = useState(0);
-  const [result, setResult] = useState(null);
-  const [selected, setSelected] = useState(null);
+  const [result, setResult] = useState<FeedResult | null>(null);
+  const [selected, setSelected] = useState<string | null>(null);
   const [page, setPage] = useState(0);
 
   useEffect(() => {
@@ -42,9 +58,11 @@ export default function Dashboard() {
         const response = await fetch(`/api/earthquakes?period=${period}`, {
           signal: AbortSignal.any([controller.signal, AbortSignal.timeout(12000)]),
         });
-        const body = await response.json();
-        if (!response.ok) throw new Error(body.error);
-        if (!Array.isArray(body.events)) throw new Error();
+        if (!response.ok) throw new Error();
+        const body: EarthquakeFeed = await response.json();
+        if (body?.source !== "USGS" || body.period !== period || !Number.isFinite(body.generated) || !Array.isArray(body.events)) {
+          throw new Error();
+        }
         if (!controller.signal.aborted) setResult({ period, refresh, data: body });
       } catch {
         if (!controller.signal.aborted) setResult({ period, refresh, error: true });
@@ -62,14 +80,15 @@ export default function Dashboard() {
     event.magnitude >= Number(threshold) && event.place.toLowerCase().includes(search),
   );
   const focused = filtered.find((event) => event.id === selected) ?? filtered[0];
-  const strongest = events.reduce((top, event) => !top || event.magnitude > top.magnitude ? event : top, null);
+  const strongest = events.reduce<Earthquake | null>((top, event) =>
+    !top || event.magnitude > top.magnitude ? event : top, null);
   const averageDepth = events.length ? events.reduce((sum, event) => sum + event.depth, 0) / events.length : null;
   const lastPage = Math.max(0, Math.ceil(filtered.length / pageSize) - 1);
   const visiblePage = Math.min(page, lastPage);
   const rows = filtered.slice(visiblePage * pageSize, (visiblePage + 1) * pageSize);
   const csvUrl = `/api/earthquakes?period=${period}&format=csv`;
 
-  function changePeriod(nextPeriod) {
+  function changePeriod(nextPeriod: FeedPeriod) {
     setPeriod(nextPeriod);
     setPage(0);
     setSelected(null);
@@ -79,7 +98,7 @@ export default function Dashboard() {
     <main className="wrap main">
       <div className="hero">
         <div>
-          <div className="eyebrow"><span /> GLOBAL SEISMIC ACTIVITY</div>
+          <div className="eyebrow"><span /> 01 / GLOBAL SEISMIC ACTIVITY</div>
           <h1>Earthquake monitor<span>.</span></h1>
           <p>Explore recent seismic events around the globe from the USGS catalog.</p>
         </div>

@@ -1,17 +1,19 @@
 # SeismicDesk
 
-Dashboard gempa global berbasis Next.js App Router untuk lab Trend Vision One Zero Trust Secure Access (ZTSA) Private Access. Feed GeoJSON publik USGS menyediakan kejadian gempa M2.5+ tanpa API key. Server Next.js mengambil feed, lalu browser meminta data ke server aplikasi. Peta dasar dibundel dari Natural Earth, sehingga browser tidak perlu menghubungi penyedia peta.
+Dashboard gempa global berbasis Next.js App Router dan TypeScript untuk lab Trend Vision One Zero Trust Secure Access (ZTSA) Private Access. Feed GeoJSON publik USGS menyediakan kejadian gempa M2.5+ tanpa API key. Server Next.js mengambil feed, lalu browser meminta data ke server aplikasi. Peta dasar dibundel dari Natural Earth, sehingga browser tidak perlu menghubungi penyedia peta.
 
 ## Preview lokal
 
 Perlu Node.js 20.9 atau lebih baru. Jalankan dari direktori proyek.
 
 ```powershell
-npm install
+npm ci
 npm run dev -- --hostname 127.0.0.1
 ```
 
 Buka [dashboard](http://localhost:3000) atau [Access Lab](http://localhost:3000/lab). Dashboard punya peta episentrum, detail gempa, periode 24 jam atau 7 hari, pencarian lokasi, filter magnitudo, dan ekspor CSV. File CSV mencakup seluruh periode yang dipilih.
+
+Jalankan `npm run typecheck` untuk memeriksa tipe tanpa membuat build produksi.
 
 ## Jalankan di host lab privat
 
@@ -29,7 +31,7 @@ Buka [dashboard](http://localhost:3000) atau [Access Lab](http://localhost:3000/
    docker run -d --name seismic-desk --restart unless-stopped -p 10.10.20.15:3000:3000 seismic-desk
    ```
 
-   Jika host memakai Node.js langsung, jalankan `npm install`, `npm run build`, lalu `npm run start -- --hostname 10.10.20.15 --port 3000` dengan IP privat host.
+   Jika host memakai Node.js langsung, jalankan `npm ci`, `npm run build`, lalu `npm run start -- --hostname 10.10.20.15 --port 3000` dengan IP privat host.
 
 3. Siapkan nama DNS internal yang dapat di-resolve dari connector, misalnya `seismic.lab.example.com`. Verifikasi bahwa connector dapat menjangkau origin, misalnya `http://seismic.lab.example.com:3000/api/health`.
 4. Di Vision One, daftarkan origin aplikasi sebagai **Internal Application**, pilih connector group, lalu konfigurasikan **Client Access** lewat Secure Access Module atau **Browser Access** lewat User Portal. Pakai origin aplikasi pada root URL agar halaman, aset Next.js, dan API berada di jalur akses yang sama. Untuk Browser Access, ikuti pengaturan domain dan sertifikat sesuai tenant.

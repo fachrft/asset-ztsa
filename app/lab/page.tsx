@@ -1,8 +1,9 @@
 import { ShieldCheck } from "lucide-react";
+import type { Metadata } from "next";
 import AccessChecks from "../../components/access-checks";
 import { Footer, Header } from "../../components/shell";
 
-export const metadata = { title: "Access lab | Seismic Desk" };
+export const metadata: Metadata = { title: "Access lab | Seismic Desk" };
 
 export default function Lab() {
   return (
@@ -11,7 +12,7 @@ export default function Lab() {
       <main className="wrap main lab-main">
         <div className="hero">
           <div>
-            <div className="eyebrow"><span /> PRIVATE ACCESS LAB</div>
+            <div className="eyebrow"><span /> 02 / PRIVATE ACCESS LAB</div>
             <h1>Access diagnostics<span>.</span></h1>
             <p>Check what reaches the app through your current access path.</p>
           </div>
